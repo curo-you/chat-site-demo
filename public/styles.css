@@ -1,81 +1,375 @@
-<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BlueChat</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <div id="app">
-      <div id="login-screen" class="screen active">
-        <div class="auth-card">
-          <h1>BlueChat</h1>
-          <form id="login-form">
-            <label>
-              ユーザー名
-              <input type="text" id="login-username" name="username" placeholder="ユーザー名" required />
-            </label>
-            <label>
-              パスワード
-              <input type="password" id="login-password" name="password" placeholder="パスワード" required />
-            </label>
-            <label>
-              管理者パスワード
-              <input type="password" id="login-admin-password" name="adminPassword" placeholder="必要なら入力" />
-            </label>
-            <button type="submit" class="primary-btn">ログイン</button>
-          </form>
-          <button id="show-register" class="secondary-btn">新規登録</button>
-        </div>
+:root {
+  --bg-1: #04070d;
+  --bg-2: #09192c;
+  --panel: rgba(12, 23, 38, 0.9);
+  --panel-alt: rgba(12, 34, 49, 0.95);
+  --primary: #0b6ecb;
+  --primary-2: #3ca7ff;
+  --accent: #7fe7ff;
+  --text: #eaf5ff;
+  --muted: #9cc1dc;
+  --danger: #ff6a6a;
+  --danger-2: #ff9a76;
+  --success: #82f6b9;
+  --warning: #ffd166;
+  --shadow: rgba(3, 13, 23, 0.5);
+}
 
-        <div id="register-panel" class="hidden auth-card">
-          <h2>新規登録</h2>
-          <form id="register-form">
-            <label>
-              ユーザー名
-              <input type="text" id="register-username" name="username" placeholder="ユーザー名" required />
-            </label>
-            <label>
-              パスワード
-              <input type="password" id="register-password" name="password" placeholder="パスワード" required />
-            </label>
-            <label>
-              パスワード確認
-              <input type="password" id="register-confirm" name="confirmPassword" placeholder="確認用パスワード" required />
-            </label>
-            <button type="submit" class="primary-btn">登録</button>
-          </form>
-        </div>
-      </div>
+* {
+  box-sizing: border-box;
+}
 
-      <div id="chat-screen" class="screen">
-        <div class="chat-shell">
-          <aside class="sidebar">
-            <div class="online-header">
-              <span>オンライン</span>
-              <strong id="online-count">0</strong>
-            </div>
-            <div id="online-users" class="online-user-list"></div>
-          </aside>
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+  color: var(--text);
+}
 
-          <main class="chat-panel">
-            <div id="chat-messages" class="chat-messages"></div>
+body {
+  min-height: 100vh;
+}
 
-            <div class="composer-wrap">
-              <div id="admin-controls" class="admin-controls hidden"></div>
-              <div class="composer-row">
-                <input id="message-input" type="text" placeholder="メッセージを入力..." />
-                <input id="file-input" type="file" accept="image/*,video/*" class="hidden" />
-                <button id="attach-file" class="secondary-btn small">写真/動画</button>
-                <button id="send-button" class="primary-btn">送信</button>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
+button, input {
+  font: inherit;
+}
 
-    <script src="/app.js"></script>
-  </body>
-</html>
+#app {
+  min-height: 100vh;
+}
+
+.screen {
+  display: none;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.screen.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  background: rgba(9, 18, 28, 0.88);
+  border: 1px solid rgba(122, 201, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 24px 50px var(--shadow);
+  padding: 28px 24px;
+}
+
+.auth-card h1, .auth-card h2 {
+  margin-top: 0;
+  color: var(--accent);
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+input[type="text"], input[type="password"], input[type="email"] {
+  background: rgba(17, 31, 46, 0.75);
+  border: 1px solid rgba(122, 201, 255, 0.25);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+}
+
+.primary-btn, .secondary-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #fff;
+  font-weight: 700;
+}
+
+.secondary-btn {
+  background: rgba(77, 148, 255, 0.12);
+  border: 1px solid rgba(153, 219, 255, 0.4);
+  color: var(--text);
+}
+
+.primary-btn:hover, .secondary-btn:hover {
+  transform: translateY(-1px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.chat-shell {
+  width: min(1400px, 100%);
+  height: min(92vh, 920px);
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  background: rgba(6, 17, 28, 0.9);
+  border: 1px solid rgba(128, 202, 255, 0.2);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px var(--shadow);
+}
+
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid rgba(145, 200, 255, 0.16);
+  padding: 14px 12px;
+}
+
+.online-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding: 10px 10px 12px;
+  background: rgba(16, 38, 56, 0.9);
+  border: 1px solid rgba(144, 203, 255, 0.18);
+  border-radius: 10px;
+}
+
+.online-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: rgba(14, 31, 47, 0.9);
+  border: 1px solid rgba(117, 202, 255, 0.18);
+  border-radius: 10px;
+  padding: 8px 8px;
+}
+
+.user-name-button {
+  flex: 1 1 110px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  padding: 4px 0;
+  font-weight: 600;
+}
+
+.user-action-btn {
+  background: linear-gradient(180deg, rgba(113, 181, 255, 0.22), rgba(87, 140, 207, 0.2));
+  border: 1px solid rgba(161, 221, 255, 0.34);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 5px 8px;
+  min-width: 38px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.user-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18);
+}
+
+.user-action-btn.danger {
+  border-color: rgba(255, 102, 102, 0.5);
+  background: linear-gradient(180deg, rgba(255, 120, 120, 0.18), rgba(164, 50, 50, 0.2));
+}
+
+.user-action-btn.mute {
+  border-color: rgba(255, 209, 102, 0.5);
+  background: linear-gradient(180deg, rgba(255, 209, 102, 0.18), rgba(156, 112, 29, 0.2));
+}
+
+.user-action-btn.ip {
+  border-color: rgba(167, 244, 255, 0.55);
+  background: linear-gradient(180deg, rgba(79, 219, 255, 0.16), rgba(34, 122, 175, 0.2));
+}
+
+.user-ip {
+  width: 100%;
+  font-size: 0.68rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: linear-gradient(180deg, rgba(6, 21, 31, 0.94), rgba(9, 31, 40, 0.8));
+}
+
+.chat-messages {
+  flex: 1;
+  overflow: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  max-width: min(72%, 700px);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(17, 51, 75, 0.8);
+  border: 1px solid rgba(158, 220, 255, 0.12);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.message.me {
+  align-self: flex-end;
+  background: rgba(13, 92, 160, 0.34);
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.message-author {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.message-media {
+  display: block;
+  max-width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
+.message-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.message-action-button {
+  background: rgba(112, 180, 255, 0.18);
+  color: var(--text);
+  border: 1px solid rgba(137, 206, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.composer-wrap {
+  padding: 12px 18px 18px;
+  border-top: 1px solid rgba(155, 218, 255, 0.12);
+  background: rgba(9, 23, 34, 0.92);
+}
+
+.admin-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  min-height: 30px;
+}
+
+.admin-controls button {
+  background: linear-gradient(180deg, rgba(70, 143, 235, 0.28), rgba(36, 95, 187, 0.18));
+  border: 1px solid rgba(168, 222, 255, 0.38);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 18px rgba(0,0,0,0.18);
+}
+
+.admin-controls button:hover {
+  transform: translateY(-1px);
+}
+
+.composer-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#message-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(161, 214, 255, 0.2);
+  background: rgba(13, 32, 44, 0.8);
+  color: var(--text);
+}
+
+.small {
+  white-space: nowrap;
+  padding: 12px 12px;
+}
+
+@media (max-width: 768px) {
+  .chat-shell {
+    grid-template-columns: 1fr;
+    height: 100vh;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(145, 200, 255, 0.16);
+    max-height: 220px;
+    overflow: auto;
+  }
+
+  .chat-messages {
+    padding: 12px;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .composer-row {
+    flex-wrap: wrap;
+  }
+
+  #message-input {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .primary-btn, .secondary-btn {
+    width: 100%;
+  }
+}
