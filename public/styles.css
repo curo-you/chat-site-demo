@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlueChat</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="login-screen" class="screen active">
+        <div class="auth-card">
+          <h1>BlueChat</h1>
+          <form id="login-form">
+            <label>
+              ユーザー名
+              <input type="text" id="login-username" name="username" placeholder="ユーザー名" required />
+            </label>
+            <label>
+              パスワード
+              <input type="password" id="login-password" name="password" placeholder="パスワード" required />
+            </label>
+            <label>
+              管理者パスワード
+              <input type="password" id="login-admin-password" name="adminPassword" placeholder="必要なら入力" />
+            </label>
+            <button type="submit" class="primary-btn">ログイン</button>
+          </form>
+          <button id="show-register" class="secondary-btn">新規登録</button>
+        </div>
+
+        <div id="register-panel" class="hidden auth-card">
+          <h2>新規登録</h2>
+          <form id="register-form">
+            <label>
+              ユーザー名
+              <input type="text" id="register-username" name="username" placeholder="ユーザー名" required />
+            </label>
+            <label>
+              パスワード
+              <input type="password" id="register-password" name="password" placeholder="パスワード" required />
+            </label>
+            <label>
+              パスワード確認
+              <input type="password" id="register-confirm" name="confirmPassword" placeholder="確認用パスワード" required />
+            </label>
+            <button type="submit" class="primary-btn">登録</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="chat-screen" class="screen">
+        <div class="chat-shell">
+          <aside class="sidebar">
+            <div class="online-header">
+              <span>オンライン</span>
+              <strong id="online-count">0</strong>
+            </div>
+            <div id="online-users" class="online-user-list"></div>
+          </aside>
+
+          <main class="chat-panel">
+            <div id="chat-messages" class="chat-messages"></div>
+
+            <div class="composer-wrap">
+              <div id="admin-controls" class="admin-controls hidden"></div>
+              <div class="composer-row">
+                <input id="message-input" type="text" placeholder="メッセージを入力..." />
+                <input id="file-input" type="file" accept="image/*,video/*" class="hidden" />
+                <button id="attach-file" class="secondary-btn small">写真/動画</button>
+                <button id="send-button" class="primary-btn">送信</button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
