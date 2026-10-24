@@ -1,345 +1,449 @@
-* {
-  box-sizing: border-box;
+const loginScreen = document.getElementById('login-screen');
+const chatScreen = document.getElementById('chat-screen');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const loginPanel = document.getElementById('login-panel');
+const registerPanel = document.getElementById('register-panel');
+const showRegisterButton = document.getElementById('show-register');
+const showLoginButton = document.getElementById('show-login');
+const chatMessages = document.getElementById('chat-messages');
+const onlineUsersEl = document.getElementById('online-users');
+const onlineCountEl = document.getElementById('online-count');
+const messageInput = document.getElementById('message-input');
+const sendButton = document.getElementById('send-button');
+const attachFileButton = document.getElementById('attach-file');
+const fileInput = document.getElementById('file-input');
+const adminControls = document.getElementById('admin-controls');
+
+const state = {
+  token: localStorage.getItem('chatToken') || '',
+  user: null,
+  messages: [],
+  onlineUsers: [],
+  replyToId: null,
+  editingMessageId: null,
+};
+
+const api = {
+  async request(endpoint, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (state.token) {
+      headers.Authorization = `Bearer ${state.token}`;
+    }
+    if (options.body && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(endpoint, {
+      ...options,
+      headers,
+      body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || '操作に失敗しました。');
+    }
+    return data;
+  },
+};
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
-:root {
-  --bg-1: #04070d;
-  --bg-2: #09192c;
-  --panel: rgba(12, 23, 38, 0.9);
-  --panel-alt: rgba(12, 34, 49, 0.95);
-  --primary: #0b6ecb;
-  --primary-2: #3ca7ff;
-  --accent: #7fe7ff;
-  --text: #eaf5ff;
-  --muted: #9cc1dc;
-  --danger: #ff6a6a;
-  --success: #82f6b9;
-  --shadow: rgba(3, 13, 23, 0.5);
+function setScreen(screenName) {
+  loginScreen.classList.toggle('active', screenName === 'login');
+  chatScreen.classList.toggle('active', screenName === 'chat');
 }
 
-html, body {
-  margin: 0;
-  min-height: 100%;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
-  color: var(--text);
+function toggleAuthView(mode) {
+  const showLogin = mode === 'login';
+  loginPanel.classList.toggle('hidden', !showLogin);
+  registerPanel.classList.toggle('hidden', showLogin);
 }
 
-body {
-  min-height: 100vh;
+function renderLoginError(message) {
+  alert(message);
 }
 
-button, input {
-  font: inherit;
-}
+async function login(username, password, adminPassword) {
+  try {
+    const response = await api.request('/api/login', {
+      method: 'POST',
+      body: { username, password, adminPassword },
+    });
 
-#app {
-  min-height: 100vh;
-}
-
-.screen {
-  display: none;
-  min-height: 100vh;
-  padding: 24px;
-}
-
-.screen.active {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.auth-card {
-  width: min(460px, 100%);
-  background: rgba(9, 18, 28, 0.88);
-  border: 1px solid rgba(122, 201, 255, 0.2);
-  border-radius: 20px;
-  box-shadow: 0 24px 50px var(--shadow);
-  padding: 28px 24px;
-}
-
-.auth-card h1, .auth-card h2 {
-  margin-top: 0;
-  color: var(--accent);
-  text-align: center;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-input[type="text"], input[type="password"], input[type="email"] {
-  background: rgba(17, 31, 46, 0.75);
-  border: 1px solid rgba(122, 201, 255, 0.25);
-  border-radius: 10px;
-  color: var(--text);
-  padding: 12px 14px;
-}
-
-.primary-btn, .secondary-btn {
-  border: none;
-  border-radius: 12px;
-  padding: 10px 16px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.primary-btn {
-  background: linear-gradient(135deg, var(--primary), var(--primary-2));
-  color: #fff;
-  font-weight: 700;
-}
-
-.secondary-btn {
-  background: rgba(77, 148, 255, 0.12);
-  border: 1px solid rgba(153, 219, 255, 0.4);
-  color: var(--text);
-}
-
-.primary-btn:hover, .secondary-btn:hover {
-  transform: translateY(-1px);
-}
-
-.hidden {
-  display: none !important;
-}
-
-.chat-shell {
-  width: min(1400px, 100%);
-  height: min(92vh, 920px);
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  background: rgba(6, 17, 28, 0.9);
-  border: 1px solid rgba(128, 202, 255, 0.2);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px var(--shadow);
-}
-
-.sidebar {
-  background: var(--panel);
-  border-right: 1px solid rgba(145, 200, 255, 0.16);
-  padding: 14px 12px;
-}
-
-.online-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 14px;
-  padding: 8px 6px;
-}
-
-.online-user-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: auto;
-}
-
-.user-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  background: rgba(14, 31, 47, 0.9);
-  border: 1px solid rgba(117, 202, 255, 0.18);
-  border-radius: 10px;
-  padding: 8px 8px;
-}
-
-.user-name-button {
-  flex: 1 1 110px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  padding: 4px 0;
-}
-
-.user-action-btn {
-  background: rgba(108, 176, 255, 0.15);
-  border: 1px solid rgba(161, 221, 255, 0.28);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 3px 6px;
-  font-size: 0.72rem;
-  cursor: pointer;
-}
-
-.user-action-btn.danger {
-  border-color: rgba(255, 102, 102, 0.5);
-  background: rgba(255, 120, 120, 0.1);
-}
-
-.user-ip {
-  width: 100%;
-  font-size: 0.68rem;
-  color: var(--accent);
-  word-break: break-all;
-}
-
-.chat-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: linear-gradient(180deg, rgba(6, 21, 31, 0.94), rgba(9, 31, 40, 0.8));
-}
-
-.chat-messages {
-  flex: 1;
-  overflow: auto;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.message {
-  max-width: min(72%, 700px);
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(17, 51, 75, 0.8);
-  border: 1px solid rgba(158, 220, 255, 0.12);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-.message.me {
-  align-self: flex-end;
-  background: rgba(13, 92, 160, 0.34);
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.message-author {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.message-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.5;
-}
-
-.message-media {
-  display: block;
-  max-width: 100%;
-  margin-top: 8px;
-  border-radius: 12px;
-}
-
-.message-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.message-action-button {
-  background: rgba(112, 180, 255, 0.18);
-  color: var(--text);
-  border: 1px solid rgba(137, 206, 255, 0.3);
-  border-radius: 8px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.composer-wrap {
-  padding: 12px 18px 18px;
-  border-top: 1px solid rgba(155, 218, 255, 0.12);
-  background: rgba(9, 23, 34, 0.92);
-}
-
-.admin-controls {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  min-height: 20px;
-}
-
-.admin-controls button {
-  background: rgba(123, 186, 255, 0.14);
-  border: 1px solid rgba(165, 214, 255, 0.3);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.composer-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-#message-input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(161, 214, 255, 0.2);
-  background: rgba(13, 32, 44, 0.8);
-  color: var(--text);
-}
-
-.small {
-  white-space: nowrap;
-  padding: 12px 12px;
-}
-
-@media (max-width: 768px) {
-  .chat-shell {
-    grid-template-columns: 1fr;
-    height: 100vh;
-  }
-
-  .sidebar {
-    border-right: none;
-    border-bottom: 1px solid rgba(145, 200, 255, 0.16);
-    max-height: 220px;
-    overflow: auto;
-  }
-
-  .chat-messages {
-    padding: 12px;
-  }
-
-  .message {
-    max-width: 90%;
-  }
-
-  .composer-row {
-    flex-wrap: wrap;
-  }
-
-  #message-input {
-    width: 100%;
-    flex-basis: 100%;
-  }
-
-  .primary-btn, .secondary-btn {
-    width: 100%;
+    state.token = response.token;
+    state.user = response.user;
+    localStorage.setItem('chatToken', state.token);
+    toggleAuthView('login');
+    setScreen('chat');
+    await loadMessages();
+    await loadOnlineUsers();
+    startPolling();
+  } catch (error) {
+    renderLoginError(error.message);
   }
 }
+
+async function register(username, password, confirmPassword) {
+  try {
+    const response = await api.request('/api/register', {
+      method: 'POST',
+      body: { username, password, confirmPassword },
+    });
+
+    state.token = response.token;
+    state.user = response.user;
+    localStorage.setItem('chatToken', state.token);
+    setScreen('chat');
+    await loadMessages();
+    await loadOnlineUsers();
+    startPolling();
+  } catch (error) {
+    renderLoginError(error.message);
+  }
+}
+
+async function loadMessages() {
+  try {
+    const response = await api.request('/api/messages');
+    state.messages = response.messages || [];
+    renderMessages();
+  } catch (error) {
+    console.error('Failed to load messages', error);
+  }
+}
+
+async function loadOnlineUsers() {
+  try {
+    const response = await api.request('/api/online');
+    state.onlineUsers = response.onlineUsers || [];
+    renderOnlineUsers();
+    updateAdminControls();
+  } catch (error) {
+    console.error('Failed to load online users', error);
+  }
+}
+
+function renderMessages() {
+  if (!state.user) return;
+
+  const userId = state.user.id;
+  const currentRole = state.user.role;
+
+  const visibleMessages = state.messages.filter((message) => {
+    if (!message.private) return true;
+    if (currentRole === 'superadmin') return true;
+    if (currentRole === 'admin') return message.senderId === userId || message.toUserId === userId;
+    return message.senderId === userId || message.toUserId === userId;
+  });
+
+  chatMessages.innerHTML = visibleMessages
+    .map((message) => {
+      const isMine = message.senderId === userId;
+      const isEditable = currentRole === 'superadmin' || isMine;
+      const replyName = message.replyToId ? state.messages.find((m) => m.id === message.replyToId)?.senderDisplayName || 'ユーザー' : '';
+      const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const mediaHtml = message.fileUrl
+        ? message.type === 'video'
+          ? `<video class="message-media" controls src="${message.fileUrl}"></video>`
+          : `<img class="message-media" src="${message.fileUrl}" alt="uploaded media" />`
+        : '';
+
+      return `
+        <div class="message ${isMine ? 'me' : ''}" data-message-id="${message.id}">
+          <div class="message-header">
+            <span class="message-author">${escapeHtml(message.senderDisplayName || message.senderName)}</span>
+            <span>${time}</span>
+          </div>
+          ${replyName ? `<div class="reply-label">↩ ${escapeHtml(replyName)}</div>` : ''}
+          <div class="message-text">${escapeHtml(message.content || '')}</div>
+          ${mediaHtml}
+          <div class="message-actions">
+            <button class="message-action-button" data-action="reply" data-message-id="${message.id}">返信</button>
+            ${isEditable ? `<button class="message-action-button" data-action="edit" data-message-id="${message.id}">編集</button>` : ''}
+            ${(currentRole === 'superadmin' || isMine) ? `<button class="message-action-button" data-action="delete" data-message-id="${message.id}">削除</button>` : ''}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  chatMessages.querySelectorAll('[data-action="reply"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const messageId = button.dataset.messageId;
+      const target = state.messages.find((item) => item.id === messageId);
+      if (!target) return;
+      state.replyToId = messageId;
+      messageInput.value = `返信: ${target.senderDisplayName || target.senderName}\n`;
+      messageInput.focus();
+    });
+  });
+
+  chatMessages.querySelectorAll('[data-action="edit"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const messageId = button.dataset.messageId;
+      const target = state.messages.find((item) => item.id === messageId);
+      if (!target) return;
+      state.editingMessageId = messageId;
+      messageInput.value = target.content;
+      messageInput.focus();
+    });
+  });
+
+  chatMessages.querySelectorAll('[data-action="delete"]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const messageId = button.dataset.messageId;
+      try {
+        await api.request(`/api/messages/${messageId}`, { method: 'DELETE' });
+        await loadMessages();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+}
+
+function renderOnlineUsers() {
+  if (!state.user) return;
+
+  const currentRole = state.user.role;
+  onlineCountEl.textContent = String(state.onlineUsers.length);
+
+  onlineUsersEl.innerHTML = state.onlineUsers
+    .map((user) => {
+      const isCurrentUser = user.id === state.user.id;
+      const canModerate = currentRole === 'superadmin' || currentRole === 'admin';
+      const canIpModerate = currentRole === 'superadmin';
+
+      return `
+        <div class="user-card">
+          <button class="user-name-button" data-user-id="${user.id}" data-user-name="${escapeHtml(user.username)}">
+            ${escapeHtml(user.username)}${isCurrentUser ? ' (自分)' : ''}
+          </button>
+          ${canModerate && !isCurrentUser ? `
+            <button class="user-action-btn mute" data-action="mute" data-user-id="${user.id}">M</button>
+            <button class="user-action-btn" data-action="unmute" data-user-id="${user.id}">MK</button>
+            <button class="user-action-btn danger" data-action="ban" data-user-id="${user.id}">B</button>
+            <button class="user-action-btn danger" data-action="unban" data-user-id="${user.id}">BK</button>
+            ${canIpModerate ? `
+              <button class="user-action-btn ip" data-action="ipban" data-user-id="${user.id}">P</button>
+              <button class="user-action-btn ip" data-action="ipunban" data-user-id="${user.id}">PK</button>
+            ` : ''}
+          ` : ''}
+          ${canModerate || isCurrentUser ? `<div class="user-ip">IP: ${escapeHtml(user.ip || 'unknown')}</div>` : ''}
+        </div>
+      `;
+    })
+    .join('');
+
+  onlineUsersEl.querySelectorAll('.user-name-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      const username = button.dataset.userName;
+      messageInput.value = `prm ${username}`;
+      messageInput.focus();
+    });
+  });
+
+  onlineUsersEl.querySelectorAll('[data-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const { action, userId } = button.dataset;
+      const minutes = action === 'mute' ? 1 : 0;
+      try {
+        await api.request('/api/moderate', {
+          method: 'POST',
+          body: { targetUserId: userId, action, minutes },
+        });
+        await loadOnlineUsers();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+}
+
+function updateAdminControls() {
+  if (!state.user) {
+    adminControls.classList.add('hidden');
+    return;
+  }
+
+  if (state.user.role === 'superadmin') {
+    adminControls.classList.remove('hidden');
+    adminControls.innerHTML = `
+      <button data-admin-action="deleteAll">全メッセージ削除</button>
+    `;
+    adminControls.querySelectorAll('[data-admin-action]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          await api.request('/api/moderate', {
+            method: 'POST',
+            body: { targetUserId: state.user.id, action: 'deleteAll' },
+          });
+          await loadMessages();
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+    });
+    return;
+  }
+
+  if (state.user.role === 'admin') {
+    adminControls.classList.remove('hidden');
+    adminControls.innerHTML = `
+      <button data-admin-action="deleteAll">全メッセージ削除</button>
+    `;
+    adminControls.querySelectorAll('[data-admin-action]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          await api.request('/api/moderate', {
+            method: 'POST',
+            body: { targetUserId: state.user.id, action: 'deleteAll' },
+          });
+          await loadMessages();
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+    });
+    return;
+  }
+
+  adminControls.classList.add('hidden');
+  adminControls.innerHTML = '';
+}
+
+async function sendMessage() {
+  const text = messageInput.value.trim();
+  if (!text && !fileInput.files[0]) {
+    alert('メッセージを入力してください。');
+    return;
+  }
+
+  try {
+    let payload = { text: text || '', replyToId: state.replyToId || null };
+    let fileUrl = '';
+
+    if (fileInput.files[0]) {
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      const uploadResponse = await api.request('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      fileUrl = uploadResponse.url;
+      payload.fileUrl = fileUrl;
+    }
+
+    if (payload.text.startsWith('prm ')) {
+      const parts = payload.text.split(' ');
+      const targetUserName = parts.slice(1).join(' ');
+      const targetUser = state.onlineUsers.find((user) => user.username === targetUserName || user.displayName === targetUserName);
+      if (!targetUser) {
+        alert('対象ユーザーがオンラインではありません。');
+        return;
+      }
+      payload.privateTargetId = targetUser.id;
+      payload.text = payload.text.replace(new RegExp(`^prm ${targetUserName}`), '').trim();
+    }
+
+    if (state.editingMessageId) {
+      await api.request(`/api/messages/${state.editingMessageId}`, {
+        method: 'PUT',
+        body: { text: payload.text || '' },
+      });
+      state.editingMessageId = null;
+    } else {
+      await api.request('/api/messages', {
+        method: 'POST',
+        body: payload,
+      });
+    }
+
+    state.replyToId = null;
+    fileInput.value = '';
+    messageInput.value = '';
+    await loadMessages();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const adminPassword = document.getElementById('login-admin-password').value;
+  await login(username, password, adminPassword);
+});
+
+registerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const username = document.getElementById('register-username').value;
+  const password = document.getElementById('register-password').value;
+  const confirmPassword = document.getElementById('register-confirm').value;
+  await register(username, password, confirmPassword);
+});
+
+showRegisterButton.addEventListener('click', () => toggleAuthView('register'));
+showLoginButton.addEventListener('click', () => toggleAuthView('login'));
+
+sendButton.addEventListener('click', sendMessage);
+messageInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    sendMessage();
+  }
+});
+attachFileButton.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) {
+    messageInput.value = fileInput.files[0].name;
+  }
+});
+
+async function bootstrap() {
+  toggleAuthView('login');
+
+  if (!state.token) {
+    setScreen('login');
+    return;
+  }
+
+  try {
+    const response = await api.request('/api/session');
+    if (!response.user) {
+      setScreen('login');
+      return;
+    }
+    state.user = response.user;
+    setScreen('chat');
+    await loadMessages();
+    await loadOnlineUsers();
+    startPolling();
+  } catch (error) {
+    console.error(error);
+    setScreen('login');
+  }
+}
+
+let pollTimer = null;
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    if (!state.user) return;
+    await loadMessages();
+    await loadOnlineUsers();
+  }, 3000);
+}
+
+bootstrap();
