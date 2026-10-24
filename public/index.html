@@ -10,42 +10,48 @@
     <div id="app">
       <div id="login-screen" class="screen active">
         <div class="auth-card">
-          <h1>CuroChat</h1>
-          <form id="login-form">
-            <label>
-              ユーザー名
-              <input type="text" id="login-username" name="username" placeholder="ユーザー名" required />
-            </label>
-            <label>
-              パスワード
-              <input type="password" id="login-password" name="password" placeholder="パスワード" required />
-            </label>
-            <label>
-              管理者パスワード
-              <input type="password" id="login-admin-password" name="adminPassword" placeholder="必要なら入力" />
-            </label>
-            <button type="submit" class="primary-btn">ログイン</button>
-          </form>
-          <button id="show-register" class="secondary-btn">新規登録</button>
-        </div>
+          <div class="auth-header">
+            <div class="brand-mark">C</div>
+            <h1>CuroChat</h1>
+          </div>
 
-        <div id="register-panel" class="hidden auth-card">
-          <h2>新規登録</h2>
-          <form id="register-form">
-            <label>
-              ユーザー名
-              <input type="text" id="register-username" name="username" placeholder="ユーザー名" required />
-            </label>
-            <label>
-              パスワード
-              <input type="password" id="register-password" name="password" placeholder="パスワード" required />
-            </label>
-            <label>
-              パスワード確認
-              <input type="password" id="register-confirm" name="confirmPassword" placeholder="確認用パスワード" required />
-            </label>
-            <button type="submit" class="primary-btn">登録</button>
-          </form>
+          <div id="login-panel" class="auth-panel">
+            <form id="login-form">
+              <label>
+                ユーザー名
+                <input type="text" id="login-username" name="username" placeholder="ユーザー名" required />
+              </label>
+              <label>
+                パスワード
+                <input type="password" id="login-password" name="password" placeholder="パスワード" required />
+              </label>
+              <label>
+                管理者パスワード
+                <input type="password" id="login-admin-password" name="adminPassword" placeholder="必要なら入力" />
+              </label>
+              <button type="submit" class="primary-btn">ログイン</button>
+            </form>
+            <button type="button" id="show-register" class="auth-link">新規登録する</button>
+          </div>
+
+          <div id="register-panel" class="auth-panel hidden">
+            <form id="register-form">
+              <label>
+                ユーザー名
+                <input type="text" id="register-username" name="username" placeholder="ユーザー名" required />
+              </label>
+              <label>
+                パスワード
+                <input type="password" id="register-password" name="password" placeholder="パスワード" required />
+              </label>
+              <label>
+                パスワード確認
+                <input type="password" id="register-confirm" name="confirmPassword" placeholder="確認用パスワード" required />
+              </label>
+              <button type="submit" class="primary-btn">登録</button>
+            </form>
+            <button type="button" id="show-login" class="auth-link">ログインに戻る</button>
+          </div>
         </div>
       </div>
 
