@@ -132,6 +132,16 @@ async function loadOnlineUsers() {
   }
 }
 
+function bindMessageSelection() {
+  chatMessages.querySelectorAll('.message').forEach((messageEl) => {
+    messageEl.addEventListener('click', (event) => {
+      if (event.target.closest('button')) return;
+      chatMessages.querySelectorAll('.message').forEach((el) => el.classList.remove('selected'));
+      messageEl.classList.add('selected');
+    });
+  });
+}
+
 function renderMessages() {
   if (!state.user) return;
 
@@ -177,6 +187,7 @@ function renderMessages() {
     .join('');
 
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  bindMessageSelection();
 
   chatMessages.querySelectorAll('[data-action="reply"]').forEach((button) => {
     button.addEventListener('click', () => {
