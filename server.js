@@ -191,6 +191,16 @@ function canEditMessage(actor, message) {
   return canDeleteMessage(actor, message);
 }
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(UPLOAD_DIR));
@@ -204,6 +214,69 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
+
+async function performExternalRequest({ url, method = 'GET', headers = {}, body = undefined, responseType = 'json', timeout = 15000 }) {
+  if (!url || typeof url !== 'string') {
+    throw new Error('URLが指定されていません。');
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (error) {
+    throw new Error('URLの形式が正しくありません。');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('http/https のURLのみ外部通信できます。');
+  }
+
+  const requestMethod = String(method || 'GET').toUpperCase();
+  const requestHeaders = { ...headers };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const requestOptions = {
+      method: requestMethod,
+      headers: requestHeaders,
+      signal: controller.signal,
+    };
+
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod) && body !== undefined && body !== null) {
+      const isPlainObject = typeof body === 'object' && !ArrayBuffer.isView(body) && !(body instanceof ArrayBuffer);
+      if (isPlainObject && !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')) {
+        requestHeaders['Content-Type'] = 'application/json';
+      }
+      requestOptions.headers = requestHeaders;
+      requestOptions.body = isPlainObject ? JSON.stringify(body) : String(body);
+    }
+
+    const response = await fetch(parsedUrl.toString(), requestOptions);
+    const contentType = response.headers.get('content-type') || '';
+
+    let data;
+    if (responseType === 'text' || !contentType.includes('application/json')) {
+      data = await response.text();
+    } else {
+      data = await response.json().catch(() => response.text());
+    }
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      data,
+    };
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('外部通信がタイムアウトしました。');
+    }
+    throw new Error(error.message || '外部通信に失敗しました。');
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 app.get('/api/session', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -312,6 +385,23 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ファイルが見つかりません。' });
   const relativeUrl = `/uploads/${req.file.filename}`;
   res.json({ url: relativeUrl });
+});
+
+app.post('/api/external', async (req, res) => {
+  try {
+    const { url, method, headers, body, responseType, timeout } = req.body || {};
+    const result = await performExternalRequest({
+      url,
+      method,
+      headers,
+      body,
+      responseType,
+      timeout,
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || '外部通信に失敗しました。' });
+  }
 });
 
 app.get('/api/messages', (req, res) => {
